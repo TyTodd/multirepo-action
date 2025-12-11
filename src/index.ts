@@ -40,6 +40,12 @@ type DocsNavigation = {
     pages?: NavigationEntry[];
     groups?: NavigationGroup[];
   }>;
+  products?: Array<{
+    product: string;
+    tabs?: DocsNavigation["tabs"];
+    groups?: DocsNavigation["groups"];
+    pages?: DocsNavigation["pages"];
+  }>;
   groups?: NavigationGroup[];
   pages?: string[];
 };
@@ -105,68 +111,69 @@ const prependPrefix = (
   };
 };
 
-const mergeNavigation = (main: Navigation, sub: Navigation, prefix: string) => {
-  return [...main, ...sub.map((group) => prependPrefix(group, prefix))];
-};
-
-const mergeDocsNavigation = (
-  main: DocsNavigation,
-  sub: DocsNavigation,
+/**
+ * Merge a sub repo's top-level navigation (tabs | groups | pages) into the main
+ * navigation as a new product entry at the end of the products list.
+ *
+ * - does not mutate inputs
+ * - returns a new navigation object
+ *
+ * The caller should pass the sub repo's docs name as productName.
+ */
+export const mergeNavigationAsProducts = (
+  main: DocsConfig,
+  sub: DocsConfig,
   prefix: string
 ): DocsNavigation => {
-  const merged = { ...main };
+  // Determine which top-level structure the sub repo uses: tabs, groups, or pages
+  const hasTabs =
+    Array.isArray(sub.navigation?.tabs) &&
+    (sub.navigation.tabs?.length ?? 0) > 0;
+  const hasGroups =
+    Array.isArray(sub.navigation?.groups) &&
+    (sub.navigation.groups?.length ?? 0) > 0;
+  const hasPages =
+    Array.isArray(sub.navigation?.pages) &&
+    (sub.navigation.pages?.length ?? 0) > 0;
 
-  // Merge groups if they exist
-  if (sub.groups) {
-    const prefixedGroups = sub.groups.map((group) =>
-      prependPrefix(group, prefix)
-    );
-    merged.groups = [...(merged.groups || []), ...prefixedGroups];
-  }
-
-  // Merge pages if they exist
-  if (sub.pages) {
-    const prefixedPages = sub.pages.map((page) => `${prefix}/${page}`);
-    merged.pages = [...(merged.pages || []), ...prefixedPages];
-  }
-
-  // For more complex structures (languages, versions, tabs, etc.)
-  // we'll add the subrepo content to the main groups section
-  if (
-    sub.languages ||
-    sub.versions ||
-    sub.tabs ||
-    sub.dropdowns ||
-    sub.anchors
-  ) {
-    const fallbackGroup: NavigationGroup = {
-      group: prefix,
-      pages: [],
+  // If nothing recognizable is present, return main unchanged (but ensure products exists)
+  if (!hasTabs && !hasGroups && !hasPages) {
+    return {
+      ...(main.navigation || {}),
+      products: [...(main.navigation?.products || [])],
     };
-
-    // Extract pages from complex navigation structures
-    if (sub.languages) {
-      sub.languages.forEach((lang) => {
-        if (lang.pages)
-          fallbackGroup.pages.push(...lang.pages.map((p) => `${prefix}/${p}`));
-        if (lang.groups)
-          fallbackGroup.pages.push(
-            ...lang.groups
-              .flatMap((g) => g.pages)
-              .filter((p): p is string => typeof p === "string")
-              .map((p) => `${prefix}/${p}`)
-          );
-      });
-    }
-
-    // Similar logic for other complex structures...
-    // For now, we'll add them as a single group
-    if (fallbackGroup.pages.length > 0) {
-      merged.groups = [...(merged.groups || []), fallbackGroup];
-    }
   }
 
-  return merged;
+  const productEntry: NonNullable<DocsNavigation["products"]>[number] = {
+    product: sub.name,
+  };
+
+  if (hasTabs) {
+    productEntry.tabs = sub.navigation.tabs!.map((t) => ({
+      ...t,
+      pages: t.pages
+        ? t.pages.map((entry) =>
+            typeof entry === "string"
+              ? `${prefix}/${entry}`
+              : prependPrefix(entry, prefix)
+          )
+        : undefined,
+      groups: t.groups
+        ? t.groups.map((g) => prependPrefix(g, prefix))
+        : undefined,
+    }));
+  } else if (hasGroups) {
+    productEntry.groups = sub.navigation.groups!.map((g) =>
+      prependPrefix(g, prefix)
+    );
+  } else if (hasPages) {
+    productEntry.pages = sub.navigation.pages!.map((p) => `${prefix}/${p}`);
+  }
+
+  return {
+    ...(main.navigation || {}),
+    products: [...(main.navigation?.products || []), productEntry],
+  };
 };
 
 const checkoutBranch = async (branch: string) => {
@@ -221,9 +228,9 @@ try {
 
     const subConfigText = await readFile(path.join(repo, "docs.json"), "utf-8");
     const subConfig = JSON.parse(subConfigText) as DocsConfig;
-    mainConfig.navigation = mergeDocsNavigation(
-      mainConfig.navigation,
-      subConfig.navigation,
+    mainConfig.navigation = mergeNavigationAsProducts(
+      mainConfig,
+      subConfig,
       repo
     );
   }

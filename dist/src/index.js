@@ -137,6 +137,7 @@ try {
         core.info(`[merge] Post-merge products.length=${mainConfig.navigation.products?.length ?? 0}`);
     }
     await writeFile("docs.json", JSON.stringify(mainConfig, null, 2));
+    await writeFile("docs.txt", JSON.stringify(mainConfig, null, 2));
     await execOrThrow("git", ["add", "."]);
     try {
         (await exec.exec("git", [

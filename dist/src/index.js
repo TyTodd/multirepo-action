@@ -46,10 +46,10 @@ export const mergeNavigationAsProducts = (main, sub, prefix) => {
         (sub.navigation.groups?.length ?? 0) > 0;
     const hasPages = Array.isArray(sub.navigation?.pages) &&
         (sub.navigation.pages?.length ?? 0) > 0;
-    console.log(`[mergeProducts] repo="${prefix}" product="${sub.name}" hasTabs=${hasTabs} hasGroups=${hasGroups} hasPages=${hasPages}`);
+    core.info(`[mergeProducts] repo="${prefix}" product="${sub.name}" hasTabs=${hasTabs} hasGroups=${hasGroups} hasPages=${hasPages}`);
     // If nothing recognizable is present, return main unchanged (but ensure products exists)
     if (!hasTabs && !hasGroups && !hasPages) {
-        console.log(`[mergeProducts] Skipping merge for repo="${prefix}" (no tabs/groups/pages found)`);
+        core.info(`[mergeProducts] Skipping merge for repo="${prefix}" (no tabs/groups/pages found)`);
         return {
             ...(main.navigation || {}),
             products: [...(main.navigation?.products || [])],
@@ -81,11 +81,11 @@ export const mergeNavigationAsProducts = (main, sub, prefix) => {
         ...(main.navigation || {}),
         products: [...(main.navigation?.products || []), productEntry],
     };
-    console.log(`[mergeProducts] After merge for repo="${prefix}", products.length=${merged.products?.length ?? 0}`);
+    core.info(`[mergeProducts] After merge for repo="${prefix}", products.length=${merged.products?.length ?? 0}`);
     return merged;
 };
 const checkoutBranch = async (branch) => {
-    console.log(`[checkoutBranch] Checking out branch="${branch}"`); //REMOVEME
+    core.info(`[checkoutBranch] Checking out branch="${branch}"`); //REMOVEME
     try {
         await execOrThrow("git", [
             "ls-remote",
@@ -113,7 +113,7 @@ try {
     const mainConfigText = await readFile("docs.json", "utf-8");
     const mainConfig = JSON.parse(mainConfigText);
     resetToken = await setToken(token);
-    console.log(`[main] about to iterate over repos=${repos.length}`); //REMOVEME
+    core.info(`[main] about to iterate over repos=${repos.length}`); //REMOVEME
     for (const { owner, repo, ref, subdirectory: subrepoSubdirectory } of repos) {
         await io.rmRF(repo);
         const args = ["clone", "--depth=1"];
@@ -132,9 +132,9 @@ try {
         }
         const subConfigText = await readFile(path.join(repo, "docs.json"), "utf-8");
         const subConfig = JSON.parse(subConfigText);
-        console.log(`[merge] Merging repo="${repo}" name="${subConfig.name}" navKeys=${Object.keys(subConfig.navigation ?? {}).join(",")}`);
+        core.info(`[merge] Merging repo="${repo}" name="${subConfig.name}" navKeys=${Object.keys(subConfig.navigation ?? {}).join(",")}`);
         mainConfig.navigation = mergeNavigationAsProducts(mainConfig, subConfig, repo);
-        console.log(`[merge] Post-merge products.length=${mainConfig.navigation.products?.length ?? 0}`);
+        core.info(`[merge] Post-merge products.length=${mainConfig.navigation.products?.length ?? 0}`);
     }
     await writeFile("docs.json", JSON.stringify(mainConfig, null, 2));
     await execOrThrow("git", ["add", "."]);
@@ -146,7 +146,7 @@ try {
             "HEAD",
             "--",
         ])) !== 0;
-        console.log("No changes detected, skipping...");
+        core.info("No changes detected, skipping...");
     }
     catch {
         await execOrThrow("git", ["config", "user.name", "Mintie Bot"]);

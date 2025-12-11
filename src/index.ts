@@ -50,7 +50,7 @@ type DocsNavigation = {
   pages?: string[];
 };
 
-type DocsConfig = {
+export type DocsConfig = {
   theme: "mint" | "maple" | "palm" | "willow" | "linden" | "almond" | "aspen";
   name: string;
   colors: { primary: string; [key: string]: string };
@@ -136,7 +136,7 @@ export const mergeNavigationAsProducts = (
     Array.isArray(sub.navigation?.pages) &&
     (sub.navigation.pages?.length ?? 0) > 0;
 
-  core.info(
+  core.debug(
     `[mergeProducts] repo="${prefix}" product="${sub.name}" hasTabs=${hasTabs} hasGroups=${hasGroups} hasPages=${hasPages}`
   );
 
@@ -182,15 +182,14 @@ export const mergeNavigationAsProducts = (
     products: [...(main.navigation?.products || []), productEntry],
   };
   core.info(
-    `[mergeProducts] After merge for repo="${prefix}", products.length=${
+    `[mergeProducts] Added ${
       merged.products?.length ?? 0
-    }`
+    } products from "${prefix}" to ${main.name}`
   );
   return merged;
 };
 
 const checkoutBranch = async (branch: string) => {
-  core.info(`[checkoutBranch] Checking out branch="${branch}"`); //REMOVEME
   try {
     await execOrThrow("git", [
       "ls-remote",
@@ -222,7 +221,6 @@ try {
   const mainConfig = JSON.parse(mainConfigText) as DocsConfig;
 
   resetToken = await setToken(token);
-  core.info(`[main] about to iterate over repos=${repos.length}`); //REMOVEME
   for (const { owner, repo, ref, subdirectory: subrepoSubdirectory } of repos) {
     await io.rmRF(repo);
 
@@ -252,11 +250,6 @@ try {
       mainConfig,
       subConfig,
       repo
-    );
-    core.info(
-      `[merge] Post-merge products.length=${
-        mainConfig.navigation.products?.length ?? 0
-      }`
     );
   }
 

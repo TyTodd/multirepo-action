@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
-import { mergeNavigationAsProducts, } from "../src/merge_docs.js";
+import { mergeNavigationAsProducts } from "../src/index.js";
 async function loadJson(p) {
     const text = await readFile(p, "utf-8");
     return JSON.parse(text);
@@ -15,8 +15,8 @@ async function main() {
         navigation: { ...(base.navigation || {}), products: [] },
     };
     // Merge docs1 then docs2, preserving order (first merged appears first)
-    mergedConfig = mergeNavigationAsProducts(mergedConfig, docs1, "docs1");
-    mergedConfig = mergeNavigationAsProducts(mergedConfig, docs2, "docs2");
+    mergedConfig.navigation = mergeNavigationAsProducts(mergedConfig, docs1, "docs1");
+    mergedConfig.navigation = mergeNavigationAsProducts(mergedConfig, docs2, "docs2");
     // Write the resulting full docs.json to project root for inspection
     await writeFile("./tests/artifacts/docs_result.json", JSON.stringify(mergedConfig, null, 2), "utf-8");
     // eslint-disable-next-line no-console

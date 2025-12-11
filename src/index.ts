@@ -136,8 +136,15 @@ export const mergeNavigationAsProducts = (
     Array.isArray(sub.navigation?.pages) &&
     (sub.navigation.pages?.length ?? 0) > 0;
 
+  console.log(
+    `[mergeProducts] repo="${prefix}" product="${sub.name}" hasTabs=${hasTabs} hasGroups=${hasGroups} hasPages=${hasPages}`
+  );
+
   // If nothing recognizable is present, return main unchanged (but ensure products exists)
   if (!hasTabs && !hasGroups && !hasPages) {
+    console.log(
+      `[mergeProducts] Skipping merge for repo="${prefix}" (no tabs/groups/pages found)`
+    );
     return {
       ...(main.navigation || {}),
       products: [...(main.navigation?.products || [])],
@@ -170,10 +177,16 @@ export const mergeNavigationAsProducts = (
     productEntry.pages = sub.navigation.pages!.map((p) => `${prefix}/${p}`);
   }
 
-  return {
+  const merged: DocsNavigation = {
     ...(main.navigation || {}),
     products: [...(main.navigation?.products || []), productEntry],
   };
+  console.log(
+    `[mergeProducts] After merge for repo="${prefix}", products.length=${
+      merged.products?.length ?? 0
+    }`
+  );
+  return merged;
 };
 
 const checkoutBranch = async (branch: string) => {
@@ -228,10 +241,20 @@ try {
 
     const subConfigText = await readFile(path.join(repo, "docs.json"), "utf-8");
     const subConfig = JSON.parse(subConfigText) as DocsConfig;
+    console.log(
+      `[merge] Merging repo="${repo}" name="${
+        subConfig.name
+      }" navKeys=${Object.keys(subConfig.navigation ?? {}).join(",")}`
+    );
     mainConfig.navigation = mergeNavigationAsProducts(
       mainConfig,
       subConfig,
       repo
+    );
+    console.log(
+      `[merge] Post-merge products.length=${
+        mainConfig.navigation.products?.length ?? 0
+      }`
     );
   }
 

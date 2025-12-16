@@ -57,6 +57,8 @@ export const mergeNavigationAsProducts = (main, sub, prefix) => {
     }
     const productEntry = {
         product: sub.name,
+        ...(sub.icon ? { icon: sub.icon } : {}),
+        ...(sub.description ? { description: sub.description } : {}),
     };
     if (hasTabs) {
         productEntry.tabs = sub.navigation.tabs.map((t) => ({

@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
-import { mergeNavigationAsProducts } from "../src/index.js";
+import { mergeNavigationAsProducts } from "../src/merge_docs.js";
 async function loadJson(p) {
     const text = await readFile(p, "utf-8");
     return JSON.parse(text);
@@ -17,10 +17,8 @@ async function main() {
     // Merge docs1 then docs2, preserving order (first merged appears first)
     mergedConfig.navigation = mergeNavigationAsProducts(mergedConfig, docs1, "docs1");
     mergedConfig.navigation = mergeNavigationAsProducts(mergedConfig, docs2, "docs2");
-    // Write the resulting full docs.json to project root for inspection
+    // Write the resulting full docs.json to tests/artifacts for inspection
     await writeFile("./tests/artifacts/docs_result.json", JSON.stringify(mergedConfig, null, 2), "utf-8");
-    // eslint-disable-next-line no-console
-    console.log('Wrote merged docs to "docs_result.json"');
     // Basic shape assertions
     assert.ok(Array.isArray(mergedConfig.navigation.products), "products should be an array");
     assert.equal(mergedConfig.navigation.products.length, 2, "should have exactly 2 products");
@@ -35,7 +33,11 @@ async function main() {
     assert.equal(mergedConfig.navigation.products[0].pages, undefined);
     assert.equal(mergedConfig.navigation.products[1].groups, undefined);
     assert.equal(mergedConfig.navigation.products[1].pages, undefined);
-    // If we reach here, tests passed
+    // New behavior: carry over icon/description from the sub docs.json into product entry
+    assert.equal(mergedConfig.navigation.products[0].icon, docs1.icon);
+    assert.equal(mergedConfig.navigation.products[0].description, docs1.description);
+    assert.equal(mergedConfig.navigation.products[1].icon, docs2.icon);
+    assert.equal(mergedConfig.navigation.products[1].description, undefined);
     // eslint-disable-next-line no-console
     console.log("mergeNavigationAsProducts tests passed.");
 }

@@ -42,6 +42,8 @@ type DocsNavigation = {
   }>;
   products?: Array<{
     product: string;
+    icon?: string;
+    description?: string;
     tabs?: DocsNavigation["tabs"];
     groups?: DocsNavigation["groups"];
     pages?: DocsNavigation["pages"];
@@ -54,6 +56,8 @@ export type DocsConfig = {
   theme: "mint" | "maple" | "palm" | "willow" | "linden" | "almond" | "aspen";
   name: string;
   colors: { primary: string; [key: string]: string };
+  icon?: string;
+  description?: string;
   navigation: DocsNavigation;
   [key: string]: any;
 };
@@ -154,6 +158,8 @@ export const mergeNavigationAsProducts = (
   const productEntry: NonNullable<DocsNavigation["products"]>[number] = {
     product: sub.name,
   };
+  if (sub.icon) productEntry.icon = sub.icon;
+  if (sub.description) productEntry.description = sub.description;
 
   if (hasTabs) {
     productEntry.tabs = sub.navigation.tabs!.map((t) => ({
